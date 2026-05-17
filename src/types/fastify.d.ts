@@ -1,6 +1,7 @@
 import "fastify"
 
 import type { GlobalConfig, RouteConfig, ServiceConfig } from "@/core/manifest/types.js"
+import type { StatsBackend } from "@/core/stats/types.js"
 import type { AuthenticatedUser } from "@/plugins/auth.js"
 import type { CacheStore } from "@/plugins/cache.js"
 import type { DiscoveryFactory } from "@/plugins/discovery.js"
@@ -16,6 +17,8 @@ declare module "fastify" {
     manifest: {
       services: ServiceConfig[]
     }
+
+    stats: StatsBackend
 
     //
     // Global config (Zod-normalised)

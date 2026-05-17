@@ -1,6 +1,7 @@
 // src/core/upstream/retry-policy.ts
 
 import type { FastifyRequest } from "fastify"
+
 import { classifyUpstreamError } from "@/core/errors/classify-upstream-error.js"
 import { RetryPolicyConfig } from "@/core/manifest/types.js"
 import type { StatsBackend } from "@/core/stats/types.js"
@@ -12,8 +13,8 @@ export class RetryPolicy {
 
   constructor(
     private config: RetryPolicyConfig,
-    private stats?: StatsBackend,          // <── added
-    private canonicalKey?: string,         // <── added
+    private stats?: StatsBackend, // <── added
+    private canonicalKey?: string, // <── added
   ) {}
 
   private isIdempotent(method: string): boolean {

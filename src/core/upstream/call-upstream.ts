@@ -1,6 +1,7 @@
 // src/core/upstream/call-upstream.ts
 
 import type { FastifyRequest } from "fastify"
+
 import type { BreakerFactory } from "@/core/breaker/types.js"
 import { buildCanonicalKey } from "@/core/key/build-canonical-key.js"
 import type { RouteConfig, ServiceConfig } from "@/core/manifest/types.js"
@@ -37,7 +38,7 @@ export async function callUpstream(
 ) {
   const { collapse, breakerFactory, retry, httpClient } = deps
 
-  const canonicalKey = buildCanonicalKey(service.name, route.path, req)
+  const canonicalKey = buildCanonicalKey(req, service.name, route.path)
   const stats = req.server.stats
 
   //
@@ -112,10 +113,7 @@ export async function callUpstream(
         // Retry attempt metric
         await stats?.increment(`${canonicalKey}:retry:attempt`)
 
-        const delay = Math.min(
-          retry.baseDelayMs * Math.pow(2, attempt),
-          retry.maxDelayMs
-        )
+        const delay = Math.min(retry.baseDelayMs * Math.pow(2, attempt), retry.maxDelayMs)
 
         await new Promise((r) => setTimeout(r, delay))
         attempt++

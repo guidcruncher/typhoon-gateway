@@ -1,8 +1,9 @@
 // src/core/breaker/distributed-breaker.ts
 
+import type { StatsBackend } from "@/core/stats/types.js"
+
 import type { CircuitBreakerStore } from "./store.js"
 import type { Breaker, BreakerOptions, BreakerState } from "./types.js"
-import type { StatsBackend } from "@/core/stats/types.js"
 
 const stateKey = (key: string) => `${key}:state`
 const failKey = (key: string) => `${key}:failures`
@@ -27,17 +28,20 @@ export class DistributedBreaker implements Breaker {
     if (!this.stats) return
 
     // Gauge: 0 = CLOSED, 1 = HALF_OPEN, 2 = OPEN
-    await this.stats.gauge(`${this.key}:breaker:state`, this.stateToNumber(state))
+    await this.stats?.gauge?.(`${this.key}:breaker:state`, this.stateToNumber(state))
 
     // Transition counter
-    await this.stats.increment(`${this.key}:breaker:transition:${state}`)
+    await this.stats?.increment?.(`${this.key}:breaker:transition:${state}`)
   }
 
   private stateToNumber(state: BreakerState): number {
     switch (state) {
-      case "CLOSED": return 0
-      case "HALF_OPEN": return 1
-      case "OPEN": return 2
+      case "CLOSED":
+        return 0
+      case "HALF_OPEN":
+        return 1
+      case "OPEN":
+        return 2
     }
   }
 
