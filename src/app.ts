@@ -13,6 +13,7 @@ import registerDebugCors from "@/plugins/debug-cors.js"
 import discoveryPlugin from "@/plugins/discovery.js"
 import registerGatewayCore from "@/plugins/gateway-core.js"
 import registerStatsHook from "@/plugins/stats.js"
+import statsPlugin from "@/plugins/stats"
 
 export async function buildApp(): Promise<FastifyInstance> {
   const fastify = Fastify({
@@ -52,7 +53,9 @@ export async function buildApp(): Promise<FastifyInstance> {
   //
   // 7. Stats hook
   //
-  await registerStatsHook(fastify)
+  fastify.register(statsPlugin, {
+    backend: (process.env.STATS_BACKEND ?? "memory")
+  })
 
   //
   // 8. Breaker plugin (guard global.breaker)
