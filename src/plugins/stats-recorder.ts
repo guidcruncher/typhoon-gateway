@@ -1,9 +1,10 @@
 // src/plugins/stats-recorder.ts
 
+import type { FastifyReply, FastifyRequest } from "fastify"
 import fp from "fastify-plugin"
-import type { FastifyInstance, FastifyRequest, FastifyReply } from "fastify"
-import type { StatsBackend } from "@/core/stats/types.js"
+
 import { buildCanonicalKey } from "@/core/key/build-canonical-key.js"
+import type { StatsBackend } from "@/core/stats/types.js"
 
 interface StatsRecorderOptions {
   backend: StatsBackend

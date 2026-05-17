@@ -12,8 +12,7 @@ import { correlationIdPlugin } from "@/plugins/correlation-id.js"
 import registerDebugCors from "@/plugins/debug-cors.js"
 import discoveryPlugin from "@/plugins/discovery.js"
 import registerGatewayCore from "@/plugins/gateway-core.js"
-import registerStatsHook from "@/plugins/stats.js"
-import statsPlugin from "@/plugins/stats"
+import statsPlugin from "@/plugins/stats.js"
 
 export async function buildApp(): Promise<FastifyInstance> {
   const fastify = Fastify({
@@ -54,7 +53,7 @@ export async function buildApp(): Promise<FastifyInstance> {
   // 7. Stats hook
   //
   fastify.register(statsPlugin, {
-    backend: (process.env.STATS_BACKEND ?? "memory")
+    backend: process.env.STATS_BACKEND ?? "memory",
   })
 
   //

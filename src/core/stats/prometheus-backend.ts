@@ -1,7 +1,8 @@
 // src/core/stats/prometheus-backend.ts
 
-import type { StatsBackend } from "./types.js"
 import client from "prom-client"
+
+import type { StatsBackend } from "./types.js"
 
 export class PrometheusStatsBackend implements StatsBackend {
   private counters = new Map<string, client.Counter>()

@@ -16,7 +16,7 @@ export function getSqliteClient(): Database.Database {
     // Recommended for API gateway workloads
     client.pragma("journal_mode = WAL")
     client.pragma("synchronous = NORMAL")
-    client.pragma("cache_size = -16000")   // ~16MB cache
+    client.pragma("cache_size = -16000") // ~16MB cache
     client.pragma("foreign_keys = ON")
   }
 

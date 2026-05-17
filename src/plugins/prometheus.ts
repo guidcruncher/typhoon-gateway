@@ -1,7 +1,8 @@
 // src/plugins/prometheus.ts
 
 import fp from "fastify-plugin"
-import { PrometheusStatsBackend } from "@/core/stats/prometheus-backend"
+
+import { PrometheusStatsBackend } from "@/core/stats/prometheus-backend.js"
 
 export default fp(async (fastify) => {
   const backend = new PrometheusStatsBackend()
@@ -10,8 +11,6 @@ export default fp(async (fastify) => {
 
   fastify.get("/metrics", async (_req, reply) => {
     const metrics = await backend.getMetrics()
-    reply
-      .header("Content-Type", "text/plain")
-      .send(metrics)
+    reply.header("Content-Type", "text/plain").send(metrics)
   })
 })

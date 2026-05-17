@@ -1,6 +1,7 @@
 // src/core/stats/redis-streams-backend.ts
 
-import { getRedisClient } from "@/core/clients/redis"
+import { getRedisClient } from "@/core/clients/redis.js"
+
 import type { StatsBackend } from "./types.js"
 
 export class RedisStreamsStatsBackend implements StatsBackend {
@@ -12,16 +13,7 @@ export class RedisStreamsStatsBackend implements StatsBackend {
   }
 
   async increment(key: string): Promise<void> {
-    await this.client.xadd(
-      this.stream,
-      "*",
-      "type",
-      "counter",
-      "key",
-      key,
-      "value",
-      "1",
-    )
+    await this.client.xadd(this.stream, "*", "type", "counter", "key", key, "value", "1")
   }
 
   async histogram(key: string, value: number): Promise<void> {
@@ -38,15 +30,6 @@ export class RedisStreamsStatsBackend implements StatsBackend {
   }
 
   async gauge(key: string, value: number): Promise<void> {
-    await this.client.xadd(
-      this.stream,
-      "*",
-      "type",
-      "gauge",
-      "key",
-      key,
-      "value",
-      String(value),
-    )
+    await this.client.xadd(this.stream, "*", "type", "gauge", "key", key, "value", String(value))
   }
 }

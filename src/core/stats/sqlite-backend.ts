@@ -1,7 +1,8 @@
 // src/core/stats/sqlite-backend.ts
 
+import { getSqliteClient } from "@/core/clients/sqlite.js"
+
 import type { StatsBackend } from "./types.js"
-import { getSqliteClient } from "@/core/clients/sqlite"
 
 export class SqliteStatsBackend implements StatsBackend {
   private db = getSqliteClient()
@@ -24,8 +25,6 @@ export class SqliteStatsBackend implements StatsBackend {
 
   // Optional helper for debugging
   getEvents(limit = 1000) {
-    return this.db
-      .prepare(`SELECT * FROM stats_events ORDER BY id DESC LIMIT ?`)
-      .all(limit)
+    return this.db.prepare(`SELECT * FROM stats_events ORDER BY id DESC LIMIT ?`).all(limit)
   }
 }
