@@ -1,6 +1,5 @@
 // src/plugins/stats-recorder.ts
 
-import type { FastifyReply, FastifyRequest } from "fastify"
 import fp from "fastify-plugin"
 
 import { buildCanonicalKey } from "@/core/key/build-canonical-key.js"
@@ -13,36 +12,40 @@ interface StatsRecorderOptions {
 export default fp<StatsRecorderOptions>(async (fastify, opts) => {
   const backend = opts.backend
 
-  if (!backend) {
-    throw new Error("StatsRecorder requires a StatsBackend instance")
-  }
-
   fastify.decorate("stats", backend)
 
-  fastify.addHook("onRequest", async (req: FastifyRequest) => {
-    // Capture start time for latency measurement
+  fastify.addHook("onRequest", async (req) => {
     ;(req as any)._startTime = process.hrtime.bigint()
   })
 
-  fastify.addHook("onResponse", async (req: FastifyRequest, reply: FastifyReply) => {
+  fastify.addHook("onResponse", async (req, reply) => {
     const start = (req as any)._startTime as bigint
     const end = process.hrtime.bigint()
     const durationMs = Number(end - start) / 1_000_000
 
-    const key = buildCanonicalKey(req)
+    const service = req.routeOptions.config.service
+    const route = req.routeOptions.config.route
 
-    // Request count
+    if (!service || !route) {
+      // Should never happen for Typhon routes
+      return
+    }
+
+    const key = buildCanonicalKey(req, service.name, route.path)
+
     await backend.increment(`${key}:requests`)
-
-    // Latency histogram
     await backend.histogram(`${key}:latency`, durationMs)
-
-    // Status code counters
     await backend.increment(`${key}:status:${reply.statusCode}`)
   })
 
-  fastify.addHook("onError", async (req: FastifyRequest, _reply: FastifyReply, _err) => {
-    const key = buildCanonicalKey(req)
+  fastify.addHook("onError", async (req, _reply, _err) => {
+    const service = req.routeOptions.config.service
+    const route = req.routeOptions.config.route
+
+    if (!service || !route) return
+
+    const key = buildCanonicalKey(req, service.name, route.path)
+
     await backend.increment(`${key}:errors`)
   })
 })

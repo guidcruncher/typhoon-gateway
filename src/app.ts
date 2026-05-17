@@ -12,6 +12,7 @@ import { correlationIdPlugin } from "@/plugins/correlation-id.js"
 import registerDebugCors from "@/plugins/debug-cors.js"
 import discoveryPlugin from "@/plugins/discovery.js"
 import registerGatewayCore from "@/plugins/gateway-core.js"
+import prometheusPlugin from "@/plugins/prometheus.js"
 import statsPlugin from "@/plugins/stats.js"
 
 export async function buildApp(): Promise<FastifyInstance> {
@@ -52,9 +53,14 @@ export async function buildApp(): Promise<FastifyInstance> {
   //
   // 7. Stats hook
   //
+  const statsBackend = process.env.STATS_BACKEND ?? "memory"
   fastify.register(statsPlugin, {
-    backend: process.env.STATS_BACKEND ?? "memory",
+    backend: statsBackend,
   })
+
+  if (statsBackend == "prometheus") {
+    fastify.register(prometheusPlugin)
+  }
 
   //
   // 8. Breaker plugin (guard global.breaker)
