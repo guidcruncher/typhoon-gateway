@@ -1,0 +1,11 @@
+groups:
+  - name: TyphonAlerts
+    rules:
+      - alert: CircuitBreakerOpened
+        expr: increase(gateway_circuit_breaker_tripped_total[1m]) > 0
+        for: 0m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Circuit Breaker opened for {{ $labels.api_id }}"
+          description: "Typhon has cut off traffic to {{ $labels.api_id }} due to repeated failures. Error: {{ $labels.error_type }}"

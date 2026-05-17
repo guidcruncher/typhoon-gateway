@@ -1,0 +1,135 @@
+{
+  "version": 1,
+  "global": {
+    "cors": {
+      "enabled": true,
+      "origin": "*"
+    },
+    "cache": {
+      "enabled": false
+    }
+  },
+  "services": [
+    {
+      "name": "catalog-api",
+      "prefix": "/catalog",
+      "discovery": {
+        "mode": "static",
+        "target": "http://catalog-v1:3000",
+        "canaryTarget": "http://catalog-v2:3000"
+      },
+      "canary": {
+        "version": "v2",
+        "weight": 10,
+        "target": "http://catalog-v2:3000"
+      },
+      "breaker": {
+        "threshold": 20,
+        "timeoutMs": 20000
+      },
+      "cache": {
+        "enabled": true,
+        "ttlSeconds": 60,
+        "backend": "memory"
+      },
+      "routes": [
+        {
+          "path": "/products",
+          "methods": ["GET"],
+          "transformers": {
+            "onResponse": [
+              {
+                "name": "maskFields",
+                "config": {
+                  "fields": ["internalNotes"]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "path": "/products/:id",
+          "methods": ["GET"],
+          "canary": {
+            "version": "v2",
+            "weight": 50,
+            "target": "http://catalog-v2:3000"
+          },
+          "transformers": {
+            "onResponse": [
+              {
+                "name": "scrubInternalFields"
+              }
+            ]
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "auth-api",
+      "prefix": "/auth",
+      "discovery": {
+        "mode": "static",
+        "target": "http://auth-v1:3001",
+        "canaryTarget": "http://auth-v2:3001"
+      },
+      "canary": {
+        "version": "v2",
+        "weight": 5,
+        "target": "http://auth-v2:3001"
+      },
+      "routes": [
+        {
+          "path": "/login",
+          "methods": ["POST"],
+          "transformers": {
+            "onRequest": [
+              {
+                "name": "validateQuery"
+              }
+            ],
+            "onResponse": [
+              {
+                "name": "addResponseEnvelope"
+              }
+            ]
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "inventory-api",
+      "prefix": "/inventory",
+      "discovery": {
+        "mode": "dns",
+        "serviceName": "inventory-v1",
+        "namespace": "default",
+        "port": 3002,
+        "canaryServiceName": "inventory-v2"
+      },
+      "canary": {
+        "version": "v2",
+        "weight": 20,
+        "target": "http://inventory-v2:3002"
+      },
+      "cache": {
+        "enabled": false
+      },
+      "routes": [
+        {
+          "path": "/stock/:sku",
+          "methods": ["GET"],
+          "transformers": {
+            "onResponse": [
+              {
+                "name": "rewritePath"
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}

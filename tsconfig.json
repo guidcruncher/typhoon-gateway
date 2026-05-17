@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@core/*": ["./src/core/*"],
+      "@middleware/*": ["./src/middleware/*"],
+      "@plugins/*": ["./src/plugins/*"],
+      "@recorders/*": ["./src/recorders/*"],
+      "@transformers/*": ["./src/transformers/*"]
+    },
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true
+  },
+  "include": ["src/**/*", "src/types/**/*.d.ts"]
+}

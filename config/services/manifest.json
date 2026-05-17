@@ -1,0 +1,137 @@
+{
+  "version": 1,
+
+  "global": {
+    "cors": {
+      "enabled": true,
+      "origin": "*"
+    },
+    "cache": {
+      "enabled": false
+    },
+
+    "breaker": {
+      "store": "memory",
+      "defaultOptions": {
+        "failureThreshold": 5,
+        "successThreshold": 2,
+        "openTimeoutMs": 30000
+      },
+      "perService": {
+        "catalog-api": {
+          "failureThreshold": 10,
+          "openTimeoutMs": 30000
+        }
+      }
+    },
+
+    "retry": {
+      "maxRetries": 2,
+      "baseDelayMs": 50,
+      "maxDelayMs": 500,
+      "retryBudgetRatio": 0.2,
+      "retryOn": [502, 503, 504]
+    },
+
+    "upstreamTimeoutMs": 10000
+  },
+
+  "services": [
+    {
+      "name": "catalog-api",
+      "prefix": "/catalog",
+
+      "discovery": {
+        "mode": "static",
+        "target": "http://catalog-svc:3000"
+      },
+
+      "cache": {
+        "enabled": true,
+        "ttlSeconds": 60,
+        "backend": "memory"
+      },
+
+      "routes": [
+        {
+          "path": "/products",
+          "methods": ["GET"],
+          "transformers": {
+            "onResponse": [
+              {
+                "name": "maskFields",
+                "config": {
+                  "fields": ["internalNotes"]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "path": "/products/:id",
+          "methods": ["GET"],
+          "transformers": {
+            "onResponse": [
+              {
+                "name": "scrubInternalFields"
+              }
+            ]
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "auth-api",
+      "prefix": "/auth",
+
+      "discovery": {
+        "mode": "static",
+        "target": "http://auth-svc:3001"
+      },
+
+      "routes": [
+        {
+          "path": "/login",
+          "methods": ["POST"],
+          "transformers": {
+            "onRequest": [
+              { "name": "validateQuery" }
+            ],
+            "onResponse": [
+              { "name": "addResponseEnvelope" }
+            ]
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "inventory-api",
+      "prefix": "/inventory",
+
+      "discovery": {
+        "mode": "dns",
+        "serviceName": "inventory-svc",
+        "namespace": "default",
+        "port": 3002
+      },
+
+      "cache": {
+        "enabled": false
+      },
+
+      "routes": [
+        {
+          "path": "/stock/:sku",
+          "methods": ["GET"],
+          "transformers": {
+            "onResponse": [
+              { "name": "rewritePath" }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
