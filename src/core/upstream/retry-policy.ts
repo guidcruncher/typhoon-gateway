@@ -1,16 +1,20 @@
 // src/core/upstream/retry-policy.ts
 
 import type { FastifyRequest } from "fastify"
-
 import { classifyUpstreamError } from "@/core/errors/classify-upstream-error.js"
 import { RetryPolicyConfig } from "@/core/manifest/types.js"
+import type { StatsBackend } from "@/core/stats/types.js"
 
 export class RetryPolicy {
   private retryCount = 0
   private retryBudgetUsed = 0
   private totalRequests = 0
 
-  constructor(private config: RetryPolicyConfig) {}
+  constructor(
+    private config: RetryPolicyConfig,
+    private stats?: StatsBackend,          // <── added
+    private canonicalKey?: string,         // <── added
+  ) {}
 
   private isIdempotent(method: string): boolean {
     return ["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase())
@@ -63,6 +67,13 @@ export class RetryPolicy {
           return res
         }
 
+        // ───────────────────────────────────────────────
+        // Retry metrics: retry attempt due to status code
+        // ───────────────────────────────────────────────
+        if (attempt >= 0) {
+          await this.stats?.increment(`${this.canonicalKey}:retry_policy:attempt`)
+        }
+
         this.retryBudgetUsed++
         this.retryCount++
 
@@ -80,6 +91,11 @@ export class RetryPolicy {
           throw err
         }
 
+        // ───────────────────────────────────────────────
+        // Retry metrics: retry attempt due to network error
+        // ───────────────────────────────────────────────
+        await this.stats?.increment(`${this.canonicalKey}:retry_policy:attempt`)
+
         this.retryBudgetUsed++
         this.retryCount++
 
@@ -88,6 +104,11 @@ export class RetryPolicy {
         continue
       }
     }
+
+    // ───────────────────────────────────────────────
+    // Retry metrics: exhausted
+    // ───────────────────────────────────────────────
+    await this.stats?.increment(`${this.canonicalKey}:retry_policy:exhausted`)
 
     throw classifyUpstreamError(lastError)
   }

@@ -1,7 +1,6 @@
 // src/core/upstream/call-upstream.ts
 
 import type { FastifyRequest } from "fastify"
-
 import type { BreakerFactory } from "@/core/breaker/types.js"
 import { buildCanonicalKey } from "@/core/key/build-canonical-key.js"
 import type { RouteConfig, ServiceConfig } from "@/core/manifest/types.js"
@@ -38,14 +37,27 @@ export async function callUpstream(
 ) {
   const { collapse, breakerFactory, retry, httpClient } = deps
 
-  const key = buildCanonicalKey(req, service.name, route.path)
+  const canonicalKey = buildCanonicalKey(service.name, route.path, req)
+  const stats = req.server.stats
 
-  const inFlight = await collapse.get(key)
-  if (inFlight) return inFlight
+  //
+  // ────────────────────────────────────────────────────────────
+  //  Collapse: hit/miss metrics
+  // ────────────────────────────────────────────────────────────
+  //
+  const inFlight = await collapse.get(canonicalKey)
+  if (inFlight) {
+    await stats?.increment(`${canonicalKey}:collapse:hit`)
+    return inFlight
+  }
 
-  // -----------------------------------------
-  // 🔥 LEGACY MODE: breakerFactory undefined
-  // -----------------------------------------
+  await stats?.increment(`${canonicalKey}:collapse:miss`)
+
+  //
+  // ────────────────────────────────────────────────────────────
+  //  Breaker (legacy mode supported)
+  // ────────────────────────────────────────────────────────────
+  //
   const breaker = breakerFactory
     ? breakerFactory.create(service, route)
     : {
@@ -54,8 +66,12 @@ export async function callUpstream(
         recordFailure: async () => {},
       }
 
+  //
+  // ────────────────────────────────────────────────────────────
+  //  Main upstream call with retry + breaker integration
+  // ────────────────────────────────────────────────────────────
+  //
   const promise = (async () => {
-    // Skip breaker check if in legacy mode
     if (!(await breaker.canRequest())) {
       throw new Error("CircuitBreakerOpen")
     }
@@ -74,6 +90,12 @@ export async function callUpstream(
         })
 
         await breaker.recordSuccess()
+
+        // Success after retry attempts
+        if (attempt > 0) {
+          await stats?.increment(`${canonicalKey}:retry:success_after_retry`)
+        }
+
         return upstreamRes
       } catch (err: any) {
         lastError = err
@@ -83,10 +105,17 @@ export async function callUpstream(
 
         if (!shouldRetry || attempt === retry.maxRetries) {
           await breaker.recordFailure()
+          await stats?.increment(`${canonicalKey}:retry:exhausted`)
           throw err
         }
 
-        const delay = Math.min(retry.baseDelayMs * Math.pow(2, attempt), retry.maxDelayMs)
+        // Retry attempt metric
+        await stats?.increment(`${canonicalKey}:retry:attempt`)
+
+        const delay = Math.min(
+          retry.baseDelayMs * Math.pow(2, attempt),
+          retry.maxDelayMs
+        )
 
         await new Promise((r) => setTimeout(r, delay))
         attempt++
@@ -96,6 +125,6 @@ export async function callUpstream(
     throw lastError
   })()
 
-  collapse.set(key, promise)
+  collapse.set(canonicalKey, promise)
   return promise
 }
