@@ -1,0 +1,72 @@
+{
+  "version": "2.0.0",
+
+  "global": {
+    "prefix": "",
+    "cache": {
+      "enabled": false,
+      "type": "none",
+      "ttl": 60
+    },
+    "breaker": {
+      "threshold": 5,
+      "timeout": 30000,
+      "halfOpenMaxRequests": 1,
+      "halfOpenSuccesses": 1,
+      "halfOpenFailures": 1
+    },
+    "security": {
+      "enabled": false
+    },
+
+    "cors": {
+      "enabled": true,
+      "origins": ["https://app.example.com", "https://beta.example.com"],
+      "methods": ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+      "allowedHeaders": ["Authorization", "Content-Type", "X-Api-Key"],
+      "exposedHeaders": ["X-Request-Id"],
+      "credentials": true,
+      "maxAgeSeconds": 600
+    }
+  },
+
+  "services": [
+    {
+      "name": "catalog-api",
+      "prefix": "/products",
+      "target": "http://catalog-svc:3000",
+
+      "cache": { "enabled": true, "type": "memory", "ttl": 60 },
+
+      "cors": {
+        "enabled": true,
+        "origins": ["https://shop.example.com"]
+      }
+    },
+
+    {
+      "name": "auth-api",
+      "prefix": "/auth",
+      "target": "http://auth-svc:3001",
+
+      "security": { "enabled": true },
+
+      "cors": {
+        "enabled": false
+      }
+    },
+
+    {
+      "name": "inventory-api",
+      "prefix": "/stock",
+      "target": "http://inventory-svc:3002",
+
+      "cache": { "enabled": false },
+
+      "cors": {
+        "enabled": true,
+        "origins": "*"
+      }
+    }
+  ]
+}

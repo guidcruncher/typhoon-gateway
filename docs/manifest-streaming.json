@@ -1,0 +1,116 @@
+{
+  "version": 1,
+  "global": {
+    "cors": {
+      "enabled": true,
+      "origin": "*"
+    },
+    "cache": {
+      "enabled": false
+    }
+  },
+  "services": [
+    {
+      "name": "streaming-catalog-api",
+      "prefix": "/catalog",
+      "discovery": {
+        "mode": "static",
+        "target": "http://catalog-svc:3000"
+      },
+      "breaker": {
+        "threshold": 15,
+        "timeoutMs": 20000
+      },
+      "routes": [
+        {
+          "path": "/products",
+          "methods": ["GET"],
+          "transformers": {
+            "onResponse": [
+              {
+                "name": "gzipResponse",
+                "config": {
+                  "level": 6
+                }
+              },
+              {
+                "name": "maskFields",
+                "config": {
+                  "fields": ["internalNotes"]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "path": "/products/:id",
+          "methods": ["GET"],
+          "transformers": {
+            "onResponse": [
+              {
+                "name": "rewritePath",
+                "config": {
+                  "prefix": "/catalog"
+                }
+              }
+            ]
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "streaming-auth-api",
+      "prefix": "/auth",
+      "discovery": {
+        "mode": "static",
+        "target": "http://auth-svc:3001"
+      },
+      "routes": [
+        {
+          "path": "/login",
+          "methods": ["POST"],
+          "transformers": {
+            "onRequest": [
+              {
+                "name": "validateQuery"
+              }
+            ],
+            "onResponse": [
+              {
+                "name": "addResponseEnvelope"
+              }
+            ]
+          }
+        }
+      ]
+    },
+
+    {
+      "name": "streaming-inventory-api",
+      "prefix": "/inventory",
+      "discovery": {
+        "mode": "dns",
+        "serviceName": "inventory-svc",
+        "namespace": "default",
+        "port": 3002
+      },
+      "routes": [
+        {
+          "path": "/stock/:sku",
+          "methods": ["GET"],
+          "transformers": {
+            "onResponse": [
+              {
+                "name": "gzipResponse",
+                "config": {
+                  "level": 4
+                }
+              }
+            ]
+          }
+        }
+      ]
+    }
+  ]
+}
